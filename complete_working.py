@@ -5,6 +5,8 @@ import glob
 import os
 import random
 
+from SSIM import SSIM
+
 # Sources List:
 # Read input from file
 # 1) https://agray3.github.io/2016/11/29/Demystifying-Data-Input-to-TensorFlow-for-Deep-Learning.html
@@ -22,7 +24,7 @@ import random
 #Python optimisation variables
 learning_rate = 0.0001
 epochs = 100
-batch_size = 100
+batch_size = 5
 
 class ImageCoder(object):
   """Helper class that provides TensorFlow image coding utilities."""
@@ -206,7 +208,7 @@ cross_entropy = tf.reduce_sum(tf.square(y_ - y))
 optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 #define an accurate assessment operation
-correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+#correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
 
 #Algorithm for computing mean squared error
 #Comes from https://github.com/tensorflow/tensorflow/issues/1666
@@ -220,9 +222,11 @@ def psnr(accuracy):
     final_accuracy = 20 * log10(255.0 / rmse)
     return final_accuracy
 
-#accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
-accuracy = psnr(accuracy_old)
+#accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
+#accuracy = psnr(accuracy_old)
+
+accuracy = SSIM(tf.argmax(y,1), tf.argmax(y_,1))
+#accuracy = SSIM(y, y_)
 
 #set up the initialisation operator
 init_op = tf.global_variables_initializer()
@@ -233,7 +237,7 @@ saver = tf.train.Saver()
 #set up recording variables
 #add a summary to store the accuracy
 tf.summary.scalar('Cross Entropy', cross_entropy)
-tf.summary.scalar('PSNR', accuracy)
+tf.summary.scalar('SSIM', accuracy)
 merged = tf.summary.merge_all()
 writer = tf.summary.FileWriter('C:\\Users\\HWRacing\\TensorTest\\07-03')
 
