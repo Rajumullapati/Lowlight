@@ -5,7 +5,7 @@ import glob
 import os
 import random
 
-from SSIM import SSIM
+from SSIM import SSIM_calculate
 
 # Sources List:
 # Read input from file
@@ -109,7 +109,7 @@ def _process_image(filename):
   return input_image_return, output_image_return
 
 #To do: make this as passing an argument, but that is 0% a priority
-filenames = _find_image_files("C:\\Users\\HWRacing\\AppData\\Local\\Programs\\Python\\Python36\\Scripts\\tensor_test\\training_data")
+filenames = _find_image_files("C:\\Users\\HWRacing\\AppData\\Local\\Programs\\Python\\Python35\\Scripts\\tensor_test\\AdvancedReading\\training_data")
 image_input=[]
 image_output=[]
 
@@ -201,14 +201,11 @@ print("Size of reconstruction = ",reconstruction)
 y_ = tf.reshape(reconstruction, [-1, 28, 28, 1])
 #y_ = tf.nn.relu(reconstruction)
 
-cross_entropy = tf.reduce_sum(tf.square(y_ - y))
+#cross_entropy = tf.reduce_sum(tf.square(y_ - y))
 #cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=dense_layer2, labels=y))
 
-#add an optimiser
-optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
-
 #define an accurate assessment operation
-#correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
 
 #Algorithm for computing mean squared error
 #Comes from https://github.com/tensorflow/tensorflow/issues/1666
@@ -222,11 +219,24 @@ def psnr(accuracy):
     final_accuracy = 20 * log10(255.0 / rmse)
     return final_accuracy
 
-#accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
-#accuracy = psnr(accuracy_old)
+accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
+accuracy = psnr(accuracy_old)
+#loss_calculator = SSIM_CLASS()
+#add an optimiser
+loss = SSIM_calculate(y, y_)
+optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(accuracy)
 
-accuracy = SSIM(tf.argmax(y,1), tf.argmax(y_,1))
-#accuracy = SSIM(y, y_)
+
+#y = tf.argmax(y, 1)
+#y_ = tf.argmax(y_, 1)
+#y = tf.reshape(y,[28, 28, 1])
+#y_ = tf.reshape(y_, [28, 28, 1])
+#accuracy = SSIM(tf.argmax(y,1), tf.argmax(y_,1))
+
+
+#print("Shape of y = ",tf.shape(y))
+#print("Shape of y_ = ",tf.shape(y_))
+#accuracy = SSIM(y[0], y_[0])
 
 #set up the initialisation operator
 init_op = tf.global_variables_initializer()
@@ -263,14 +273,11 @@ threads = tf.train.start_queue_runners(sess=sess,coord=coord)
 
 #generate_batch()
 total_batch = batch_size
-print("Total batch = ",total_batch)
 for epoch in range(epochs):
-    print("Epoch = ",epoch)
     avg_cost = 0
     for i in range(total_batch):
-        print("Batch = ",i)
         batch_xs, batch_ys = sess.run([image_input, image_output])
-        _, acc, cross = sess.run([optimiser, accuracy, cross_entropy], feed_dict={x: batch_xs, y: batch_ys})
+        _, accuracy = sess.run([optimiser, accuracy], feed_dict={x: batch_xs, y: batch_ys})
         avg_cost += acc/total_batch
         print("Average cost = ",acc)
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
