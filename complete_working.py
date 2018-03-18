@@ -277,8 +277,8 @@ for epoch in range(epochs):
     avg_cost = 0
     for i in range(total_batch):
         batch_xs, batch_ys = sess.run([image_input, image_output])
-        _, c = sess.run([optimiser, cross_entropy], feed_dict={x: batch_xs, y: batch_ys})
-        avg_cost += c/total_batch
+        _, c, acc = sess.run([optimiser, cross_entropy, accuracy], feed_dict={x: batch_xs, y: batch_ys})
+        avg_cost += acc/total_batch
         print("Average cost = ",c)
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
     print("Epoch:", (epoch+1), "cost =", "{:.3f}".format(avg_cost), " test accuracy: {:.3f}".format(test_acc))
