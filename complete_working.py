@@ -5,7 +5,7 @@ import glob
 import os
 import random
 
-from SSIM import SSIM_calculate
+from SSIM_redo import SSIM_calculate
 
 # Sources List:
 # Read input from file
@@ -109,7 +109,7 @@ def _process_image(filename):
   return input_image_return, output_image_return
 
 #To do: make this as passing an argument, but that is 0% a priority
-filenames = _find_image_files("C:\\Users\\HWRacing\\AppData\\Local\\Programs\\Python\\Python35\\Scripts\\tensor_test\\AdvancedReading\\training_data")
+filenames = _find_image_files("C:\\Users\\Yola\\git\\AdvancedReading\\training_data")
 image_input=[]
 image_output=[]
 
@@ -135,7 +135,7 @@ image_output_batch=[]
 image_input_test=[]
 image_output_test=[]
 
-origin_dir = "C:\\Users\\HWRacing\\TensorTest\\input_data\\"
+origin_dir = "C:\\Users\\Yola\\TensorTest\\input_data\\"
 for i in range(0,5):
     image_input_test.append(image_input[i])
     image_output_test.append(image_output[i])
@@ -201,7 +201,7 @@ print("Size of reconstruction = ",reconstruction)
 y_ = tf.reshape(reconstruction, [-1, 28, 28, 1])
 #y_ = tf.nn.relu(reconstruction)
 
-#cross_entropy = tf.reduce_sum(tf.square(y_ - y))
+cross_entropy = tf.reduce_sum(tf.square(y_ - y))
 #cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=dense_layer2, labels=y))
 
 #define an accurate assessment operation
@@ -223,8 +223,8 @@ accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32))
 accuracy = psnr(accuracy_old)
 #loss_calculator = SSIM_CLASS()
 #add an optimiser
-loss = SSIM_calculate(y, y_)
-optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(accuracy)
+#loss = SSIM_calculate(y, y_)
+optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 
 #y = tf.argmax(y, 1)
@@ -249,7 +249,7 @@ saver = tf.train.Saver()
 tf.summary.scalar('Cross Entropy', cross_entropy)
 tf.summary.scalar('SSIM', accuracy)
 merged = tf.summary.merge_all()
-writer = tf.summary.FileWriter('C:\\Users\\HWRacing\\TensorTest\\07-03')
+writer = tf.summary.FileWriter('C:\\Users\\Yola\\TensorTest\\07-03')
 
 #sess=tf.Session()
 #sess.run(init_op)
@@ -277,16 +277,16 @@ for epoch in range(epochs):
     avg_cost = 0
     for i in range(total_batch):
         batch_xs, batch_ys = sess.run([image_input, image_output])
-        _, accuracy = sess.run([optimiser, accuracy], feed_dict={x: batch_xs, y: batch_ys})
-        avg_cost += acc/total_batch
-        print("Average cost = ",acc)
+        _, c = sess.run([optimiser, cross_entropy], feed_dict={x: batch_xs, y: batch_ys})
+        avg_cost += c/total_batch
+        print("Average cost = ",c)
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
     print("Epoch:", (epoch+1), "cost =", "{:.3f}".format(avg_cost), " test accuracy: {:.3f}".format(test_acc))
     #summary = sess.run(merged, feed_dict={x: mnist.validation.images, y: mnist.validation.images})
     summary = sess.run(merged, feed_dict={x:batch_xs, y: batch_ys})
     writer.add_summary(summary, epoch)
     #png_data_ = sess.run(png)
-output_dir = "C:\\Users\\HWRacing\\TensorTest\\output_data\\"
+output_dir = "C:\\Users\\Yola\\TensorTest\\output_data\\"
 for i in range(0,5):
     batch_xs_test, batch_ys_test = sess.run([image_input_test, image_output_test])
     _, acc, cross, _png_data = sess.run([optimiser, accuracy, cross_entropy, png], feed_dict={x: batch_xs_test, y: batch_ys_test})

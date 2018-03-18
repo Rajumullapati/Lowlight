@@ -3,14 +3,17 @@ import numpy as np
 
 def SSIM_calculate(input_image, output_image):
 
-  x__ = tf.placeholder(tf.int32, shape=[28,28,1], name='x_placeholder')
-  y__ = tf.placeholder(tf.int32, shape=[28,28,1], name='y_placeholder')
+  #x__ = tf.placeholder(tf.int32, shape=[28,28,1], name='x_placeholder')
+  #y__ = tf.placeholder(tf.int32, shape=[28,28,1], name='y_placeholder')
 
-  input_image = tf.cast(input_image, dtype=tf.float32)
-  output_image = tf.cast(output_image, dtype=tf.float32)
+  #input_image = tf.placeholder(tf.float32, [None, 28, 28, 1])
+  #output_image = tf.placeholder(tf.float32, [None, 28, 28, 1])
 
-  input_image = tf.reshape(input_image, shape=[28, 28, 1])
-  output_image = tf.reshape(output_image, shape=[28, 28, 1])
+  #input_image = tf.cast(input_image, dtype=tf.float32)
+  #output_image = tf.cast(output_image, dtype=tf.float32)
+
+  #input_image = tf.reshape(input_image, shape=[28, 28, 1])
+  #output_image = tf.reshape(output_image, shape=[28, 28, 1])
 
   x__ = tf.identity(input_image)
   y__ = tf.identity(output_image)
