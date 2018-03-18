@@ -206,7 +206,7 @@ cross_entropy = tf.reduce_sum(tf.square(y_ - y))
 
 #define an accurate assessment operation
 correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
-
+print("Correct prediction = ",correct_prediction)
 #Algorithm for computing mean squared error
 #Comes from https://github.com/tensorflow/tensorflow/issues/1666
 def log10(x):
@@ -219,11 +219,15 @@ def psnr(accuracy):
     final_accuracy = 20 * log10(255.0 / rmse)
     return final_accuracy
 
+#y_argmax = tf.argmax(y,1)
+#y__argmax = tf.argmax(y_,1)
+
 accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
 accuracy = psnr(accuracy_old)
 #loss_calculator = SSIM_CLASS()
 #add an optimiser
-#loss = SSIM_calculate(y, y_)
+
+loss = SSIM_calculate(y, y_)
 optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 

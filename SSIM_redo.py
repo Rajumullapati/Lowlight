@@ -6,9 +6,6 @@ def SSIM_calculate(input_image, output_image):
   #x__ = tf.placeholder(tf.int32, shape=[28,28,1], name='x_placeholder')
   #y__ = tf.placeholder(tf.int32, shape=[28,28,1], name='y_placeholder')
 
-  #input_image = tf.placeholder(tf.float32, [None, 28, 28, 1])
-  #output_image = tf.placeholder(tf.float32, [None, 28, 28, 1])
-
   #input_image = tf.cast(input_image, dtype=tf.float32)
   #output_image = tf.cast(output_image, dtype=tf.float32)
 
