@@ -214,20 +214,36 @@ def log10(x):
     denominator = tf.log(tf.constant(10, dtype=numerator.dtype))
     return numerator / denominator
 
-def psnr(accuracy):
+def psnr(accuracy, INPUT_Y, INPUT_Y_):
+    print("Input y = ",INPUT_Y)
+    print("Input y_ = ",INPUT_Y_)
     rmse = tf.sqrt(accuracy)
     final_accuracy = 20 * log10(255.0 / rmse)
     return final_accuracy
 
-#y_argmax = tf.argmax(y,1)
-#y__argmax = tf.argmax(y_,1)
-
 accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
-accuracy = psnr(accuracy_old)
+accuracy = psnr(accuracy_old, y, y_)
 #loss_calculator = SSIM_CLASS()
 #add an optimiser
 
-loss = SSIM_calculate(y, y_)
+mean_x, variance_x = tf.nn.moments(y, [0])
+mean_y, variance_y = tf.nn.moments(y_, [0])
+
+x_y_covariance, x_y_optimiser = tf.contrib.metrics.streaming_covariance(y, y_)
+x_x_covariance, x_x_optimiser = tf.contrib.metrics.streaming_covariance(y, y)
+y_y_covariance, y_y_optimiser = tf.contrib.metrics.streaming_covariance(y_, y_)
+
+m_x, _ = sess.run([mean_x, variance_x])
+m_y, _ = sess.run([mean_y, variance_y])
+
+sess.run([x_y_optimiser])
+covariance_x_y = sess.run([x_y_covariance])
+sess.run([x_x_optimiser])
+variance_x = sess.run([x_x_covariance])
+sess.run([y_y_optimiser])
+variance_y = sess.run([y_y_covariance])
+
+loss = SSIM_calculate(m_x, m_y, covariance_x_y, variance_x, variance_y)
 optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 
@@ -281,7 +297,7 @@ for epoch in range(epochs):
     avg_cost = 0
     for i in range(total_batch):
         batch_xs, batch_ys = sess.run([image_input, image_output])
-        _, c, acc = sess.run([optimiser, cross_entropy, accuracy], feed_dict={x: batch_xs, y: batch_ys})
+        _, c, acc = sess.run([optimiser, cross_entropy, loss], feed_dict={x: batch_xs, y: batch_ys})
         avg_cost += acc/total_batch
         print("Average cost = ",c)
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
