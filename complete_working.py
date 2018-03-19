@@ -226,24 +226,70 @@ accuracy = psnr(accuracy_old, y, y_)
 #loss_calculator = SSIM_CLASS()
 #add an optimiser
 
-mean_x, variance_x = tf.nn.moments(y, [0])
-mean_y, variance_y = tf.nn.moments(y_, [0])
+#mean_x, variance_x = tf.nn.moments(y, [0])
+#mean_y, variance_y = tf.nn.moments(y_, [0])
 
-x_y_covariance, x_y_optimiser = tf.contrib.metrics.streaming_covariance(y, y_)
-x_x_covariance, x_x_optimiser = tf.contrib.metrics.streaming_covariance(y, y)
-y_y_covariance, y_y_optimiser = tf.contrib.metrics.streaming_covariance(y_, y_)
+#x_y_covariance, x_y_optimiser = tf.contrib.metrics.streaming_covariance(y, y_)
+#x_x_covariance, x_x_optimiser = tf.contrib.metrics.streaming_covariance(y, y)
+#y_y_covariance, y_y_optimiser = tf.contrib.metrics.streaming_covariance(y_, y_)
 
-m_x, _ = sess.run([mean_x, variance_x])
-m_y, _ = sess.run([mean_y, variance_y])
+#m_x, _ = sess.run([mean_x, variance_x])
+#m_y, _ = sess.run([mean_y, variance_y])
 
-sess.run([x_y_optimiser])
-covariance_x_y = sess.run([x_y_covariance])
-sess.run([x_x_optimiser])
-variance_x = sess.run([x_x_covariance])
-sess.run([y_y_optimiser])
-variance_y = sess.run([y_y_covariance])
+#sess.run([x_y_optimiser])
+#covariance_x_y = sess.run([x_y_covariance])
+#sess.run([x_x_optimiser])
+#variance_x = sess.run([x_x_covariance])
+#sess.run([y_y_optimiser])
+#variance_y = sess.run([y_y_covariance])
 
-loss = SSIM_calculate(m_x, m_y, covariance_x_y, variance_x, variance_y)
+#Full credit goes to https://stackoverflow.com/questions/39051451/ssim-ms-ssim-for-tensorflow - I tried but could not implement it myself!
+def _tf_fspecial_gauss(size, sigma):
+    """Function to mimic the 'fspecial' gaussian MATLAB function
+    """
+    x_data, y_data = np.mgrid[-size//2 + 1:size//2 + 1, -size//2 + 1:size//2 + 1]
+
+    x_data = np.expand_dims(x_data, axis=-1)
+    x_data = np.expand_dims(x_data, axis=-1)
+
+    y_data = np.expand_dims(y_data, axis=-1)
+    y_data = np.expand_dims(y_data, axis=-1)
+
+    x = tf.constant(x_data, dtype=tf.float32)
+    y = tf.constant(y_data, dtype=tf.float32)
+
+    g = tf.exp(-((x**2 + y**2)/(2.0*sigma**2)))
+    return g / tf.reduce_sum(g)
+
+def tf_ssim(img1, img2, cs_map=False, mean_metric=True, size=11, sigma=1.5):
+    window = _tf_fspecial_gauss(size, sigma) # window shape [size, size]
+    K1 = 0.01
+    K2 = 0.03
+    L = 1  # depth of image (255 in case the image has a differnt scale)
+    C1 = (K1*L)**2
+    C2 = (K2*L)**2
+    mu1 = tf.nn.conv2d(img1, window, strides=[1,1,1,1], padding='VALID')
+    mu2 = tf.nn.conv2d(img2, window, strides=[1,1,1,1],padding='VALID')
+    mu1_sq = mu1*mu1
+    mu2_sq = mu2*mu2
+    mu1_mu2 = mu1*mu2
+    sigma1_sq = tf.nn.conv2d(img1*img1, window, strides=[1,1,1,1],padding='VALID') - mu1_sq
+    sigma2_sq = tf.nn.conv2d(img2*img2, window, strides=[1,1,1,1],padding='VALID') - mu2_sq
+    sigma12 = tf.nn.conv2d(img1*img2, window, strides=[1,1,1,1],padding='VALID') - mu1_mu2
+    if cs_map:
+        value = (((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*
+                    (sigma1_sq + sigma2_sq + C2)),
+                (2.0*sigma12 + C2)/(sigma1_sq + sigma2_sq + C2))
+    else:
+        value = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*
+                    (sigma1_sq + sigma2_sq + C2))
+
+    if mean_metric:
+        value = tf.reduce_mean(value)
+    return value
+
+loss = tf_ssim(y, y_)
+#loss = SSIM_calculate(m_x, m_y, covariance_x_y, variance_x, variance_y)
 optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 
@@ -267,7 +313,7 @@ saver = tf.train.Saver()
 #set up recording variables
 #add a summary to store the accuracy
 tf.summary.scalar('Cross Entropy', cross_entropy)
-tf.summary.scalar('SSIM', accuracy)
+tf.summary.scalar('SSIM', loss)
 merged = tf.summary.merge_all()
 writer = tf.summary.FileWriter('C:\\Users\\Yola\\TensorTest\\07-03')
 
@@ -298,8 +344,11 @@ for epoch in range(epochs):
     for i in range(total_batch):
         batch_xs, batch_ys = sess.run([image_input, image_output])
         _, c, acc = sess.run([optimiser, cross_entropy, loss], feed_dict={x: batch_xs, y: batch_ys})
+        print("Acc = ",acc)
+        #for item in acc:
         avg_cost += acc/total_batch
-        print("Average cost = ",c)
+        #avg_cost += acc/total_batch
+        print("Average cost = ",avg_cost)
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
     print("Epoch:", (epoch+1), "cost =", "{:.3f}".format(avg_cost), " test accuracy: {:.3f}".format(test_acc))
     #summary = sess.run(merged, feed_dict={x: mnist.validation.images, y: mnist.validation.images})
