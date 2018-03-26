@@ -32,6 +32,11 @@ for i=1:nfiles
    for j=1:20
        x_start = randi([1,(size_x-image_size)],1,1);
        y_start = randi([1,(size_y-image_size)],1,1);
+       disp(j);
+       disp(x_start);
+       disp(y_start);
+       disp(size_x);
+       disp(size_y);
        total_image = zeros(image_size,2*image_size);
        new_image_unfiltered= zeros(image_size);
        new_image_unfiltered=images_unfiltered{i}(y_start:y_start+(image_size-1), x_start:x_start+(image_size-1));
