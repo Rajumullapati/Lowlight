@@ -5,8 +5,6 @@ import glob
 import os
 import random
 
-from SSIM_redo import SSIM_calculate
-
 # Sources List:
 # Read input from file
 # 1) https://agray3.github.io/2016/11/29/Demystifying-Data-Input-to-TensorFlow-for-Deep-Learning.html
@@ -26,6 +24,7 @@ learning_rate = 0.0001
 epochs = 50
 batch_size = 283
 
+#Used for image input
 class ImageCoder(object):
   """Helper class that provides TensorFlow image coding utilities."""
 
@@ -75,6 +74,7 @@ def _find_image_files(data_dir):
   filenames = [filenames[i] for i in shuffled_index]
   return filenames
 
+#Modified function that takes the complete image and separates it into unfiltered and expected datasets
 def _process_image(filename):
   """Process a single image file.
   Args:
@@ -110,7 +110,9 @@ def _process_image(filename):
 
 #To do: make this as passing an argument, but that is 0% a priority
 filenames = _find_image_files("C:\\Users\\HWRacing\\git\\AdvancedReading\\training_data")
+#Unfiltered image
 image_input=[]
+#Expected output image
 image_output=[]
 
 #For each image, get the image and process
@@ -123,15 +125,10 @@ for i in filenames:
     image_input.append(input)
     image_output.append(output)
 
-print("Input image size = ",tf.size(image_input))
-print("Output image shape = ",tf.size(image_output))
-
-print("Input length = ",len(image_input))
-print("Output length = ",len(image_output))
-
 image_input_batch=[]
 image_output_batch=[]
 
+#Used for generating the test output which is saved to a file
 image_input_test=[]
 image_output_test=[]
 
@@ -144,17 +141,7 @@ _output_png = sess.run(png)
 input_filename = origin_dir+"input_image.png"
 open(input_filename, 'wb').write(_output_png)
 
-def generate_batch():
-    image_indices=random.sample(range(101),batch_size)
-    for i in image_indices:
-        print("Index = ",i)
-        #print("Value at index = ",image_indices[i])
-        image_input_batch.append(image_input[i])
-        image_output_batch.append(image_output[i])
-
-    print("Size of input batch = ",len(image_input_batch))
-    print("Size of output batch = ",len(image_output_batch))
-
+#Function used to create the convolutional layers of the neural network, and saves repeating code
 def create_new_conv_layer(input_data, num_input_channels, num_filters, filter_shape, name):
     #setup the filter input shape for tf.nn.conv_2d
     conv_filt_shape = [filter_shape[0], filter_shape[1], num_input_channels, num_filters]
@@ -172,40 +159,29 @@ def create_new_conv_layer(input_data, num_input_channels, num_filters, filter_sh
     #apply a ReLU non-linear activation
     out_layer = tf.nn.relu(out_layer)
 
-    #ksize = [1, pool_shape[0], pool_shape[1], 1]
-    #strides = [1,2,2,1]
-    #out_layer = tf.nn.max_pool(out_layer, ksize=ksize, strides=strides, padding='SAME')
-
     return out_layer
 
-#declare training data placeholders
-#input x - for 28 x 28 pixels = 784 - this is the flattened image data that is drawn from mnist.train.nextbatch()
-
+#Input and output image placeholders
+#None = unknown size of list yet, determined by network
+#28 x 28 pixels
+#1 = 1 colour channel (greyscale) as opposed to 3 (RGB)
 x = tf.placeholder(tf.float32, [None, 28, 28, 1])
-#reshape the input so that it is a 4D tensor
-#x_shaped = tf.reshape(x, [-1, 28, 28, 1])
-#now declare the output data placeholder - 10 digits
-    #this needs to be 784, what does None do?
 y = tf.placeholder(tf.float32, [None, 28, 28, 1])
 
 #create some convolutional layers
-#layer1 = create_new_conv_layer(x_shaped, 1, 32, [5,5], [2,2], name='layer1')
-#layer2 = create_new_conv_layer(layer1, 32, 64, [5,5], [2,2], name='layer2')
-
 patch_extraction = create_new_conv_layer(x, 1, 64, [9, 9], name='patch_extraction')
 non_linear_mapping = create_new_conv_layer(patch_extraction, 64, 32, [1, 1], name='non_linear_mapping')
 reconstruction = create_new_conv_layer(non_linear_mapping, 32, 1, [5, 5], name='reconstruction')
 
-print("Size of reconstruction = ",reconstruction)
+#Reconstruct the output image into a 28x28x1 array
 y_ = tf.reshape(reconstruction, [-1, 28, 28, 1])
-#y_ = tf.nn.relu(reconstruction)
 
+#Cost function - mean squared error
 cross_entropy = tf.reduce_mean(tf.square(y_ - y))
-#cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=dense_layer2, labels=y))
 
 #define an accurate assessment operation
 correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
-print("Correct prediction = ",correct_prediction)
+
 #Algorithm for computing mean squared error
 #Comes from https://github.com/tensorflow/tensorflow/issues/1666
 def log10(x):
@@ -222,25 +198,6 @@ def psnr(accuracy, INPUT_Y, INPUT_Y_):
 
 accuracy_old = tf.reduce_mean(tf.square(tf.cast(correct_prediction, tf.float32)))
 accuracy = psnr(accuracy_old, y, y_)
-#loss_calculator = SSIM_CLASS()
-#add an optimiser
-
-#mean_x, variance_x = tf.nn.moments(y, [0])
-#mean_y, variance_y = tf.nn.moments(y_, [0])
-
-#x_y_covariance, x_y_optimiser = tf.contrib.metrics.streaming_covariance(y, y_)
-#x_x_covariance, x_x_optimiser = tf.contrib.metrics.streaming_covariance(y, y)
-#y_y_covariance, y_y_optimiser = tf.contrib.metrics.streaming_covariance(y_, y_)
-
-#m_x, _ = sess.run([mean_x, variance_x])
-#m_y, _ = sess.run([mean_y, variance_y])
-
-#sess.run([x_y_optimiser])
-#covariance_x_y = sess.run([x_y_covariance])
-#sess.run([x_x_optimiser])
-#variance_x = sess.run([x_x_covariance])
-#sess.run([y_y_optimiser])
-#variance_y = sess.run([y_y_covariance])
 
 #Full credit goes to https://stackoverflow.com/questions/39051451/ssim-ms-ssim-for-tensorflow - I tried but could not implement it myself!
 def _tf_fspecial_gauss(size, sigma):
@@ -287,21 +244,10 @@ def tf_ssim(img1, img2, cs_map=False, mean_metric=True, size=11, sigma=1.5):
         value = tf.reduce_mean(value)
     return value
 
+#Evaluation function definition
 loss = tf_ssim(y, y_)
-#loss = SSIM_calculate(m_x, m_y, covariance_x_y, variance_x, variance_y)
+#Apply an optimizer to mean squared error
 optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
-
-
-#y = tf.argmax(y, 1)
-#y_ = tf.argmax(y_, 1)
-#y = tf.reshape(y,[28, 28, 1])
-#y_ = tf.reshape(y_, [28, 28, 1])
-#accuracy = SSIM(tf.argmax(y,1), tf.argmax(y_,1))
-
-
-#print("Shape of y = ",tf.shape(y))
-#print("Shape of y_ = ",tf.shape(y_))
-#accuracy = SSIM(y[0], y_[0])
 
 #set up the initialisation operator
 init_op = tf.global_variables_initializer()
@@ -310,63 +256,50 @@ init_op = tf.global_variables_initializer()
 saver = tf.train.Saver()
 
 #set up recording variables
-#add a summary to store the accuracy
+#add a summary to store the cost and evaluation functions
 tf.summary.scalar('MSE', cross_entropy)
 tf.summary.scalar('SSIM', loss)
 merged = tf.summary.merge_all()
 writer = tf.summary.FileWriter('C:\\Users\\HWRacing\\TensorTest\\Complete_Run')
-
-#sess=tf.Session()
-#sess.run(init_op)
 
 sess = tf.InteractiveSession()
 
 #set up the initialisation operator
 sess.run(tf.global_variables_initializer())
 
-#Round 2 for output images... We got this
-#png = tf.image.encode_png(tf.cast((tf.reshape(y_, [28, 28, 1])+1.)*127.5,tf.uint8))
 png = tf.image.encode_png(tf.cast((tf.reshape(y_[0], [28, 28, 1])+1.)*127.5,tf.uint8))
-#data = tf.eye(256, batch_shape=[1])
-#bgr = tf.stack([data, data, data], axis = 3)
-#png = tf.image.encode_png(tf.cast((tf.reshape(bgr, [256, 256, 3])+1.)*127.5,tf.uint8))
 
-
-#I'm not entirely sure if I need this any more but we'll see
 coord = tf.train.Coordinator()
 threads = tf.train.start_queue_runners(sess=sess,coord=coord)
 
-#generate_batch()
 total_batch = batch_size
+#Actually perform the neural network training
 for epoch in range(epochs):
     avg_cost = 0
     for i in range(total_batch):
         batch_xs, batch_ys = sess.run([image_input, image_output])
+        #Optimizer has no usable output but still needs run, save the cross entropy and the loss function
         _, c, acc = sess.run([optimiser, cross_entropy, loss], feed_dict={x: batch_xs, y: batch_ys})
         #for item in acc:
         avg_cost += acc/total_batch
-        #avg_cost += acc/total_batch
         print("Average cost = ",avg_cost," at ",i," with epoch ",epoch)
+    #Once the network has been trained with each batch, test it to find the output
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
+    #Print values to the console
     print("Epoch:", (epoch+1), "cost =", "{:.3f}".format(avg_cost), " test accuracy: {:.3f}".format(test_acc))
-    #summary = sess.run(merged, feed_dict={x: mnist.validation.images, y: mnist.validation.images})
+    #Save the values using TensorBoard
     summary = sess.run(merged, feed_dict={x:batch_xs, y: batch_ys})
     writer.add_summary(summary, epoch)
-    #png_data_ = sess.run(png)
+    #Test the network using the input data and save the output to a file
     output_dir = "C:\\Users\\HWRacing\\git\\AdvancedReading\\output_data\\"
     batch_xs_test, batch_ys_test = sess.run([image_input_test, image_output_test])
     _, acc, cross, _png_data = sess.run([optimiser, accuracy, cross_entropy, png], feed_dict={x: batch_xs_test, y: batch_ys_test})
     output_filename = output_dir + "output" + str(epoch) + ".png"
     open(output_filename, 'wb').write(_png_data)
 
-
-
 print("Training complete!")
 print("Final SSIM")
-#saver.save(sess, 'C:\\Users\\HWRacing\\AppData\\Local\\Programs\\Python\\Python36\\Scripts\\tensor_overnight')
+#saver.save(sess, 'C:\\Users\\HWRacing\\AppData\\Local\\Programs\\Python\\Python36\\Scripts\\complete_run')
 #print("Finished saving")
 writer.add_graph(sess.graph)
 print(sess.run(loss, feed_dict={x: batch_xs, y: batch_ys}))
-#prediction=tf.argmax(y_,1)
-#print("Output = ")
-#print(prediction.eval(feed_dict={x: mnist.validation.images}, session=sess))
