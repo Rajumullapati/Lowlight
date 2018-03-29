@@ -190,8 +190,6 @@ def log10(x):
     return numerator / denominator
 
 def psnr(accuracy, INPUT_Y, INPUT_Y_):
-    print("Input y = ",INPUT_Y)
-    print("Input y_ = ",INPUT_Y_)
     rmse = tf.sqrt(accuracy)
     final_accuracy = 20 * log10(255.0 / rmse)
     return final_accuracy
