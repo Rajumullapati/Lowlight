@@ -23,8 +23,8 @@ from SSIM_redo import SSIM_calculate
 
 #Python optimisation variables
 learning_rate = 0.0001
-epochs = 100
-batch_size = 5
+epochs = 50
+batch_size = 283
 
 class ImageCoder(object):
   """Helper class that provides TensorFlow image coding utilities."""
@@ -109,7 +109,7 @@ def _process_image(filename):
   return input_image_return, output_image_return
 
 #To do: make this as passing an argument, but that is 0% a priority
-filenames = _find_image_files("C:\\Users\\Yola\\git\\AdvancedReading\\training_data")
+filenames = _find_image_files("C:\\Users\\HWRacing\\git\\AdvancedReading\\training_data")
 image_input=[]
 image_output=[]
 
@@ -135,15 +135,14 @@ image_output_batch=[]
 image_input_test=[]
 image_output_test=[]
 
-origin_dir = "C:\\Users\\Yola\\TensorTest\\input_data\\"
-for i in range(0,5):
-    image_input_test.append(image_input[i])
-    image_output_test.append(image_output[i])
-    png = tf.image.encode_png(tf.cast((tf.reshape(image_output[i], [28, 28, 1])+1.)*127.5,tf.uint8))
-    sess = tf.Session()
-    _output_png = sess.run(png)
-    input_filename = origin_dir+"input_"+str(i)+".png"
-    open(input_filename, 'wb').write(_output_png)
+origin_dir = "C:\\Users\\HWRacing\\git\\AdvancedReading\\input_data\\"
+image_input_test.append(image_input[0])
+image_output_test.append(image_output[0])
+png = tf.image.encode_png(tf.cast((tf.reshape(image_input[0], [28, 28, 1])+1.)*127.5,tf.uint8))
+sess = tf.Session()
+_output_png = sess.run(png)
+input_filename = origin_dir+"input_image.png"
+open(input_filename, 'wb').write(_output_png)
 
 def generate_batch():
     image_indices=random.sample(range(101),batch_size)
@@ -201,7 +200,7 @@ print("Size of reconstruction = ",reconstruction)
 y_ = tf.reshape(reconstruction, [-1, 28, 28, 1])
 #y_ = tf.nn.relu(reconstruction)
 
-cross_entropy = tf.reduce_sum(tf.square(y_ - y))
+cross_entropy = tf.reduce_mean(tf.square(y_ - y))
 #cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=dense_layer2, labels=y))
 
 #define an accurate assessment operation
@@ -312,10 +311,10 @@ saver = tf.train.Saver()
 
 #set up recording variables
 #add a summary to store the accuracy
-tf.summary.scalar('Cross Entropy', cross_entropy)
+tf.summary.scalar('MSE', cross_entropy)
 tf.summary.scalar('SSIM', loss)
 merged = tf.summary.merge_all()
-writer = tf.summary.FileWriter('C:\\Users\\Yola\\TensorTest\\07-03')
+writer = tf.summary.FileWriter('C:\\Users\\HWRacing\\TensorTest\\Complete_Run')
 
 #sess=tf.Session()
 #sess.run(init_op)
@@ -344,31 +343,30 @@ for epoch in range(epochs):
     for i in range(total_batch):
         batch_xs, batch_ys = sess.run([image_input, image_output])
         _, c, acc = sess.run([optimiser, cross_entropy, loss], feed_dict={x: batch_xs, y: batch_ys})
-        print("Acc = ",acc)
         #for item in acc:
         avg_cost += acc/total_batch
         #avg_cost += acc/total_batch
-        print("Average cost = ",avg_cost)
+        print("Average cost = ",avg_cost," at ",i," with epoch ",epoch)
     test_acc = sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys})
     print("Epoch:", (epoch+1), "cost =", "{:.3f}".format(avg_cost), " test accuracy: {:.3f}".format(test_acc))
     #summary = sess.run(merged, feed_dict={x: mnist.validation.images, y: mnist.validation.images})
     summary = sess.run(merged, feed_dict={x:batch_xs, y: batch_ys})
     writer.add_summary(summary, epoch)
     #png_data_ = sess.run(png)
-output_dir = "C:\\Users\\Yola\\TensorTest\\output_data\\"
-for i in range(0,5):
+    output_dir = "C:\\Users\\HWRacing\\git\\AdvancedReading\\output_data\\"
     batch_xs_test, batch_ys_test = sess.run([image_input_test, image_output_test])
     _, acc, cross, _png_data = sess.run([optimiser, accuracy, cross_entropy, png], feed_dict={x: batch_xs_test, y: batch_ys_test})
-    output_filename = output_dir + "output_" + str(i) + ".png"
+    output_filename = output_dir + "output" + str(epoch) + ".png"
     open(output_filename, 'wb').write(_png_data)
 
 
 
 print("Training complete!")
+print("Final SSIM")
 #saver.save(sess, 'C:\\Users\\HWRacing\\AppData\\Local\\Programs\\Python\\Python36\\Scripts\\tensor_overnight')
 #print("Finished saving")
 writer.add_graph(sess.graph)
-print(sess.run(accuracy, feed_dict={x: batch_xs, y: batch_ys}))
+print(sess.run(loss, feed_dict={x: batch_xs, y: batch_ys}))
 #prediction=tf.argmax(y_,1)
 #print("Output = ")
 #print(prediction.eval(feed_dict={x: mnist.validation.images}, session=sess))
