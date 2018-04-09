@@ -22,7 +22,7 @@ import random
 #Python optimisation variables
 learning_rate = 0.0001
 epochs = 50
-batch_size = 283
+batch_size = 5
 
 #Used for image input
 class ImageCoder(object):
