@@ -8,6 +8,7 @@ imagefiles_unfiltered = dir(image_unfiltered_input_path);
 imagefiles_filtered = dir(image_filtered_input_path);
 nfiles = length(imagefiles_unfiltered);    % Number of files found
 for i=1:nfiles
+   disp(i);
    currentfilename = imagefiles_unfiltered(i).name;
    currentfilename = strcat('UnFiltered\',currentfilename);
    currentimage = imread(currentfilename);
@@ -29,7 +30,7 @@ for i=1:nfiles
    %imshow(images{i});
    %figure;
    [size_y,size_x,size_z] = size(images_filtered{i});
-   for j=1:50
+   for j=1:250
        x_start = randi([1,(size_x-image_size)],1,1);
        y_start = randi([1,(size_y-image_size)],1,1);
        total_image = zeros(image_size,2*image_size);
